@@ -23,7 +23,6 @@ CAPTURE_GROUP_VERSION = "version"
 
 
 class AdditionalMypyDependency(ABC):
-
     @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError
@@ -146,14 +145,18 @@ def parse_pyproject_toml(pyproject_file: Path) -> set[AdditionalMypyDependency]:
     # Extract from [project.dependencies]
     if "project" in pyproject_data and "dependencies" in pyproject_data["project"]:
         for dependency in pyproject_data["project"]["dependencies"]:
-            # Handle platform-specific dependencies like 'pywin32==310; sys_platform == "win32"'
+            # Handle platform-specific dependencies like
+            # 'pywin32==310; sys_platform == "win32"'
             dependency = dependency.split(";")[0].strip()
             package = parse_requirement(dependency)
             if package:
                 packages.add(package)
 
     # Extract from [dependency-groups.dev]
-    if "dependency-groups" in pyproject_data and "dev" in pyproject_data["dependency-groups"]:
+    if (
+        "dependency-groups" in pyproject_data
+        and "dev" in pyproject_data["dependency-groups"]
+    ):
         for dependency in pyproject_data["dependency-groups"]["dev"]:
             dependency = dependency.split(";")[0].strip()
             package = parse_requirement(dependency)

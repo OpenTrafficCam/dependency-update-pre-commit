@@ -1,6 +1,6 @@
 - id: update-mypy-dependencies
   name: Update mypy additional_dependencies
-  entry: update_mypy_dependencies.py
+  entry: update-mypy-dependencies
   language: python
   files: ^(requirements.*\.txt|pyproject\.toml)$
   pass_filenames: false

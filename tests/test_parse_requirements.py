@@ -3,7 +3,7 @@
 import tempfile
 from pathlib import Path
 
-from update_mypy_dependencies import (
+from dependency_update_pre_commit.update_mypy_dependencies import (
     NormalPackage,
     TypeStubPackage,
     parse_pyproject_toml,

@@ -2,10 +2,12 @@
 name: Tests
 
 on:
-  push:
-    branches: [main]
+  # Run tests each time a PR is opened or changed.
+  # Allow other Workflows (e.g., build workflows) to call this workflow.
   pull_request:
-    branches: [main]
+  workflow_call:
+
+permissions: read-all
 
 jobs:
   test:

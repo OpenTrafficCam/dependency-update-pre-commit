@@ -38,23 +38,15 @@ Issues = "https://github.com/OpenTrafficCam/dependency-update-pre-commit/issues"
 
 [dependency-groups]
 dev = [
-    "black>=24.8.0",
-    "flake8>=7.3.0",
-    "isort>=5.13.2",
     "mypy>=1.16.1",
     "pre-commit>=4.0.0",
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
+    "ruff>=0.8.0",
     "types-PyYAML>=6.0",
     "types-requests>=2.31.0",
     "yamllint>=1.35.0",
 ]
-
-[tool.black]
-line-length = 88
-
-[tool.isort]
-profile = "black"
 
 [tool.mypy]
 ignore_missing_imports = true
@@ -63,3 +55,19 @@ disallow_untyped_defs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+]
+ignore = ["E203"]  # whitespace before ':'
+
+[tool.ruff.lint.isort]
+force-single-line = false
+known-first-party = ["dependency_update_pre_commit"]

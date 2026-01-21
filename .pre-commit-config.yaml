@@ -1,0 +1,61 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+        exclude_types:
+          - json
+      - id: trailing-whitespace
+      - id: no-commit-to-branch
+      - id: debug-statements
+      - id: requirements-txt-fixer
+      - id: check-executables-have-shebangs
+      - id: detect-private-key
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args:
+          - --profile
+          - black
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.16.1
+    hooks:
+      - id: mypy
+        entry: mypy update_mypy_dependencies.py tests --config-file=pyproject.toml
+        additional_dependencies:
+          - PyYAML==6.0.2
+          - pytest==8.3.4
+          - requests==2.32.4
+          - types-PyYAML
+          - types-requests
+        always_run: true
+        pass_filenames: false
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args:
+          - -c=./.yamllint.yaml
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+  - repo: https://github.com/pecigonzalo/pre-commit-shfmt
+    rev: v2.2.0
+    hooks:
+      - id: shell-fmt-docker
+        args:
+          - -i
+          - "2"

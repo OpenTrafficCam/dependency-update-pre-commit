@@ -188,7 +188,7 @@ toml = [
 [[package]]
 name = "dependency-update-pre-commit"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "pyyaml" },
     { name = "requests" },

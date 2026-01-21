@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dependency-update-pre-commit"
+version = "0.1.0"
+authors = [
+    { name = "OpenTrafficCam contributors", email = "team@opentrafficcam.org" },
+]
+description = "A pre-commit hook that automatically updates mypy's additional_dependencies with type stubs from your project dependencies"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Quality Assurance",
+]
+keywords = ["pre-commit", "mypy", "type-stubs", "type-checking"]
+dependencies = [
+    "PyYAML>=6.0",
+    "requests>=2.31.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/OpenTrafficCam/dependency-update-pre-commit"
+Repository = "https://github.com/OpenTrafficCam/dependency-update-pre-commit"
+Issues = "https://github.com/OpenTrafficCam/dependency-update-pre-commit/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+]

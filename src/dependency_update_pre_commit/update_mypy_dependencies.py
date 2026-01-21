@@ -23,7 +23,6 @@ CAPTURE_GROUP_VERSION = "version"
 
 
 class AdditionalMypyDependency(ABC):
-
     @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError

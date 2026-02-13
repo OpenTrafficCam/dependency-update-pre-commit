@@ -10,6 +10,7 @@ from typing import Iterable
 
 import requests
 import yaml
+from packaging.requirements import Requirement
 
 REPOSITORIES = "repos"
 REPOSITORY = "repo"
@@ -47,13 +48,19 @@ class Package(AdditionalMypyDependency):
     def version(self) -> str | None:
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def marker(self) -> str | None:
+        raise NotImplementedError
+
     def __hash__(self) -> int:
-        return hash((self.name, self.version))
+        # Include marker in hash so platform-specific versions are distinct
+        return hash((self.name, self.version, self.marker))
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Package):
             return False
-        return (self.name, self.version) == (other.name, other.version)
+        return (self.name, self.version, self.marker) == (other.name, other.version, other.marker)
 
 
 class TypeStubPackage(Package):
@@ -65,12 +72,20 @@ class TypeStubPackage(Package):
     def version(self) -> str | None:
         return self._version
 
-    def __init__(self, name: str, version: str | None) -> None:
+    @property
+    def marker(self) -> str | None:
+        return self._marker
+
+    def __init__(self, name: str, version: str | None, marker: str | None = None) -> None:
         self._name = name
         self._version = version
+        self._marker = marker
 
     def serialize(self) -> str:
-        return self.name
+        result = self.name
+        if self.marker:
+            result += f"; {self.marker}"
+        return result
 
 
 class NormalPackage(Package):
@@ -82,14 +97,22 @@ class NormalPackage(Package):
     def version(self) -> str | None:
         return self._version
 
-    def __init__(self, name: str, version: str | None) -> None:
+    @property
+    def marker(self) -> str | None:
+        return self._marker
+
+    def __init__(self, name: str, version: str | None, marker: str | None = None) -> None:
         self._name = name
         self._version = version
+        self._marker = marker
 
     def serialize(self) -> str:
+        result = self.name
         if self.version:
-            return self.name + "==" + self.version
-        return self.name
+            result += "==" + self.version
+        if self.marker:
+            result += f"; {self.marker}"
+        return result
 
 
 @dataclass
@@ -132,8 +155,55 @@ def parse_multiple_requirements_file(
     return packages
 
 
-def parse_pyproject_toml(pyproject_file: Path) -> set[AdditionalMypyDependency]:
-    """Parse pyproject.toml and extract package names from dependencies."""
+def parse_requirement_with_marker(requirement_line: str) -> AdditionalMypyDependency | None:
+    """Parse requirement preserving environment marker.
+
+    Args:
+        requirement_line: PEP 508 requirement string (e.g., 'numpy==2.1.1; sys_platform != "win32"')
+
+    Returns:
+        Package or ExtraIndexUrl object, or None if parsing fails
+    """
+    # Handle extra-index-url separately
+    if match_extra_index_url := pattern_extra_index_url.match(requirement_line):
+        return create_extra_index_url(
+            match_extra_index_url.group(CAPTURE_GROUP_URL).strip()
+        )
+
+    try:
+        # Parse as full PEP 508 requirement with potential marker
+        req = Requirement(requirement_line)
+        package_name = req.name
+
+        # Extract version if specified (assumes == operator)
+        version = None
+        if req.specifier:
+            for spec in req.specifier:
+                if spec.operator == "==":
+                    version = spec.version
+                    break
+
+        # Preserve marker as string
+        marker = str(req.marker) if req.marker else None
+
+        return create_package(name=package_name, version=version, marker=marker)
+    except Exception:
+        # Fallback: use original regex-based parsing without marker
+        return parse_requirement(requirement_line)
+
+
+def parse_pyproject_toml(
+    pyproject_file: Path, optional_extras: list[str] | None = None
+) -> set[AdditionalMypyDependency]:
+    """Parse pyproject.toml and extract package names from dependencies.
+
+    Args:
+        pyproject_file: Path to pyproject.toml
+        optional_extras: List of optional extras to include (e.g., ['inference_cpu'])
+
+    Returns:
+        Set of packages to include in mypy's additional_dependencies
+    """
     if not pyproject_file.exists():
         return set()
 
@@ -145,10 +215,8 @@ def parse_pyproject_toml(pyproject_file: Path) -> set[AdditionalMypyDependency]:
     # Extract from [project.dependencies]
     if "project" in pyproject_data and "dependencies" in pyproject_data["project"]:
         for dependency in pyproject_data["project"]["dependencies"]:
-            # Handle platform-specific dependencies like
-            # 'pywin32==310; sys_platform == "win32"'
-            dependency = dependency.split(";")[0].strip()
-            package = parse_requirement(dependency)
+            # CHANGED: Use new parser that preserves markers
+            package = parse_requirement_with_marker(dependency)
             if package:
                 packages.add(package)
 
@@ -158,10 +226,98 @@ def parse_pyproject_toml(pyproject_file: Path) -> set[AdditionalMypyDependency]:
         and "dev" in pyproject_data["dependency-groups"]
     ):
         for dependency in pyproject_data["dependency-groups"]["dev"]:
-            dependency = dependency.split(";")[0].strip()
-            package = parse_requirement(dependency)
+            # CHANGED: Use new parser that preserves markers
+            package = parse_requirement_with_marker(dependency)
             if package:
                 packages.add(package)
+
+    # NEW: Extract from [project.optional-dependencies] if specified
+    if optional_extras:
+        optional_packages = parse_optional_dependencies(pyproject_data, optional_extras)
+        packages.update(optional_packages)
+
+    return packages
+
+
+def get_extra_index_urls(pyproject_data: dict, extra_names: list[str]) -> set[ExtraIndexUrl]:
+    """Extract extra index URLs for specified optional extras from pyproject.toml.
+
+    Args:
+        pyproject_data: Parsed pyproject.toml data
+        extra_names: List of extra names (e.g., ['inference_cpu'])
+
+    Returns:
+        Set of ExtraIndexUrl objects
+    """
+    index_urls = set()
+
+    # Get [tool.uv.sources] if it exists (uv-specific config)
+    sources = pyproject_data.get("tool", {}).get("uv", {}).get("sources", {})
+
+    # Get [tool.uv.index] if it exists
+    indexes = pyproject_data.get("tool", {}).get("uv", {}).get("index", [])
+    index_map = {idx.get("name"): idx.get("url") for idx in indexes}
+
+    # Check if any dependencies in the extras reference special indexes
+    # This is a heuristic - if package sources reference an index, include that index
+    optional_deps = pyproject_data.get("project", {}).get("optional-dependencies", {})
+
+    for extra_name in extra_names:
+        if extra_name not in optional_deps:
+            continue
+
+        # Get package names from this extra
+        for dep in optional_deps[extra_name]:
+            package_name = dep.split(";")[0].split("=")[0].split("<")[0].split(">")[0].strip()
+
+            # Check if this package has a custom source
+            if package_name in sources:
+                source_config = sources[package_name]
+                # Handle list of sources
+                if isinstance(source_config, list):
+                    for src in source_config:
+                        if "index" in src:
+                            index_name = src["index"]
+                            if index_name in index_map:
+                                index_urls.add(ExtraIndexUrl(index_map[index_name]))
+                # Handle single source
+                elif isinstance(source_config, dict) and "index" in source_config:
+                    index_name = source_config["index"]
+                    if index_name in index_map:
+                        index_urls.add(ExtraIndexUrl(index_map[index_name]))
+
+    return index_urls
+
+
+def parse_optional_dependencies(
+    pyproject_data: dict, extra_names: list[str]
+) -> set[AdditionalMypyDependency]:
+    """Parse specified optional-dependencies extras from pyproject.toml.
+
+    Args:
+        pyproject_data: Parsed pyproject.toml data
+        extra_names: List of extra names to include (e.g., ['inference_cpu'])
+
+    Returns:
+        Set of packages and extra index URLs from the specified extras
+    """
+    packages = set()
+
+    optional_deps = pyproject_data.get("project", {}).get("optional-dependencies", {})
+
+    for extra_name in extra_names:
+        if extra_name not in optional_deps:
+            print(f"Warning: Optional extra '{extra_name}' not found in [project.optional-dependencies]")
+            continue
+
+        for dependency in optional_deps[extra_name]:
+            package = parse_requirement_with_marker(dependency)
+            if package:
+                packages.add(package)
+
+    # Add extra index URLs if needed
+    index_urls = get_extra_index_urls(pyproject_data, extra_names)
+    packages.update(index_urls)
 
     return packages
 
@@ -215,15 +371,15 @@ def create_extra_index_url(url: str) -> AdditionalMypyDependency:
     return ExtraIndexUrl(url)
 
 
-def create_package(name: str, version: str | None) -> AdditionalMypyDependency:
+def create_package(name: str, version: str | None, marker: str | None = None) -> AdditionalMypyDependency:
     """Check if a type stub exists for a given package name and return it."""
     types_package_name = f"types-{name}"
     if __check_types_for_package_exists(types_package_name):
-        return create_type_stub_package(name=types_package_name, version=version)
+        return create_type_stub_package(name=types_package_name, version=version, marker=marker)
 
     # Some packages already provide type stubs with their package
     # If they don't pre-commit mypy won't fail
-    return create_normal_package(name=name, version=version)
+    return create_normal_package(name=name, version=version, marker=marker)
 
 
 def __check_types_for_package_exists(package_name: str) -> bool:
@@ -232,13 +388,13 @@ def __check_types_for_package_exists(package_name: str) -> bool:
 
 
 def create_type_stub_package(
-    name: str, version: str | None
+    name: str, version: str | None, marker: str | None = None
 ) -> AdditionalMypyDependency:
-    return TypeStubPackage(name=name, version=version)
+    return TypeStubPackage(name=name, version=version, marker=marker)
 
 
-def create_normal_package(name: str, version: str | None) -> AdditionalMypyDependency:
-    return NormalPackage(name=name, version=version)
+def create_normal_package(name: str, version: str | None, marker: str | None = None) -> AdditionalMypyDependency:
+    return NormalPackage(name=name, version=version, marker=marker)
 
 
 def serialize_packages(packages: Iterable[AdditionalMypyDependency]) -> list[str]:
@@ -287,6 +443,24 @@ def type_stubs_have_changed(actual: dict, to_compare: dict) -> bool:
 
 
 def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Update mypy additional_dependencies in .pre-commit-config.yaml"
+    )
+    parser.add_argument(
+        "--optional-extras",
+        type=str,
+        default="",
+        help="Comma-separated list of optional-dependencies extras to include for type checking (e.g., 'inference_cpu' or 'inference_cpu,test_extras')",
+    )
+    args = parser.parse_args()
+
+    # Parse optional extras from argument
+    optional_extras = None
+    if args.optional_extras:
+        optional_extras = [extra.strip() for extra in args.optional_extras.split(",") if extra.strip()]
+
     pyproject_file = Path("pyproject.toml")
     requirements_file = Path("requirements.txt")
     requirements_dev_file = Path("requirements-dev.txt")
@@ -294,7 +468,7 @@ def main() -> None:
 
     # Prefer pyproject.toml if it exists, otherwise fall back to requirements.txt
     if pyproject_file.exists():
-        additional_dependencies = parse_pyproject_toml(pyproject_file)
+        additional_dependencies = parse_pyproject_toml(pyproject_file, optional_extras)
     else:
         additional_dependencies = parse_multiple_requirements_file(
             [requirements_file, requirements_dev_file]

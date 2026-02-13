@@ -169,10 +169,12 @@ def parse_requirement_with_marker(
     """Parse requirement preserving environment marker.
 
     Args:
-        requirement_line: PEP 508 requirement string (e.g., 'numpy==2.1.1; sys_platform != "win32"')
+        requirement_line (str): PEP 508 requirement string (e.g.,
+            'numpy==2.1.1; sys_platform != "win32"').
 
     Returns:
-        Package or ExtraIndexUrl object, or None if parsing fails
+        AdditionalDependency | None:  A Package or ExtraIndexUrl object, or None if
+            parsing fails.
     """
     # Handle extra-index-url separately
     if match_extra_index_url := pattern_extra_index_url.match(requirement_line):
@@ -208,11 +210,13 @@ def parse_pyproject_toml(
     """Parse pyproject.toml and extract package names from dependencies.
 
     Args:
-        pyproject_file: Path to pyproject.toml
-        optional_extras: List of optional extras to include (e.g., ['inference_cpu'])
+        pyproject_file (Path): Path to pyproject.toml.
+        optional_extras (list[str]): List of optional extras to include
+            (e.g., ['inference_cpu']).
 
     Returns:
-        Set of packages to include in mypy's additional_dependencies
+        set[AdditionalMypyDependency]: Set of packages to include in mypy's
+            additional_dependencies.
     """
     if not pyproject_file.exists():
         return set()
@@ -255,11 +259,11 @@ def get_extra_index_urls(
     """Extract extra index URLs for specified optional extras from pyproject.toml.
 
     Args:
-        pyproject_data: Parsed pyproject.toml data
-        extra_names: List of extra names (e.g., ['inference_cpu'])
+        pyproject_data (dict): Parsed pyproject.toml data.
+        extra_names (list[str]): List of extra names (e.g., ['inference_cpu']).
 
     Returns:
-        Set of ExtraIndexUrl objects
+        set[ExtraIndexUrl]: Set of ExtraIndexUrl objects.
     """
     index_urls = set()
 
@@ -309,11 +313,13 @@ def parse_optional_dependencies(
     """Parse specified optional-dependencies extras from pyproject.toml.
 
     Args:
-        pyproject_data: Parsed pyproject.toml data
-        extra_names: List of extra names to include (e.g., ['inference_cpu'])
+        pyproject_data (dict): Parsed pyproject.toml data
+        extra_names (list[str]): List of extra names to include
+            (e.g., ['inference_cpu']).
 
     Returns:
-        Set of packages and extra index URLs from the specified extras
+        set[AdditionalMypyDependency]: Set of packages and extra index URLs from
+            the specified extras.
     """
     packages = set()
 
@@ -322,7 +328,8 @@ def parse_optional_dependencies(
     for extra_name in extra_names:
         if extra_name not in optional_deps:
             print(
-                f"Warning: Optional extra '{extra_name}' not found in [project.optional-dependencies]"
+                f"Warning: Optional extra '{extra_name}' not found in "
+                "[project.optional-dependencies]"
             )
             continue
 

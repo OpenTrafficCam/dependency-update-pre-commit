@@ -481,7 +481,10 @@ def main() -> None:
         "--optional-extras",
         type=str,
         default="",
-        help="Comma-separated list of optional-dependencies extras to include for type checking (e.g., 'inference_cpu' or 'inference_cpu,test_extras')",
+        help=(
+            "Comma-separated list of optional-dependencies extras to include for type "
+            "checking (e.g., 'inference_cpu' or 'inference_cpu,test_extras')"
+        ),
     )
     args = parser.parse_args()
 

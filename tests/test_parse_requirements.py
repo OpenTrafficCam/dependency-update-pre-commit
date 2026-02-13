@@ -63,9 +63,9 @@ class TestParseRequirementsFile:
                     for p in packages
                     if p.name == expected.name or p.name == f"types-{expected.name}"
                 ]
-                assert len(matching) == 1, (
-                    f"Expected one package named '{expected.name}'"
-                )
+                assert (
+                    len(matching) == 1
+                ), f"Expected one package named '{expected.name}'"
                 assert_package_matches(matching[0], expected)
         finally:
             temp_file.unlink()
@@ -142,9 +142,9 @@ class TestParsePyprojectToml:
                     for p in packages
                     if p.name == expected.name or p.name == f"types-{expected.name}"
                 ]
-                assert len(matching) == 1, (
-                    f"Expected one package named '{expected.name}'"
-                )
+                assert (
+                    len(matching) == 1
+                ), f"Expected one package named '{expected.name}'"
                 assert_package_matches(matching[0], expected)
         finally:
             temp_file.unlink()
@@ -232,9 +232,9 @@ class TestParsePyprojectToml:
                     for p in packages
                     if p.name == expected.name or p.name == f"types-{expected.name}"
                 ]
-                assert len(matching) >= 1, (
-                    f"Expected package '{expected.name}' not found"
-                )
+                assert (
+                    len(matching) >= 1
+                ), f"Expected package '{expected.name}' not found"
                 assert_package_matches(matching[0], expected)
         finally:
             temp_file.unlink()
@@ -268,7 +268,8 @@ class TestParsePyprojectToml:
 
             # Should have TWO distinct numpy packages
             assert len(numpy_packages) == 2, (
-                f"Expected 2 numpy packages with different markers, got {len(numpy_packages)}"
+                "Expected 2 numpy packages with different markers, got "
+                f"{len(numpy_packages)}"
             )
 
             # Verify both expected versions exist
@@ -345,16 +346,16 @@ def assert_package_matches(
             f"got '{actual.name}'"
         )
     else:
-        assert actual.name == expected.name, (
-            f"Expected name '{expected.name}', got '{actual.name}'"
-        )
+        assert (
+            actual.name == expected.name
+        ), f"Expected name '{expected.name}', got '{actual.name}'"
 
-    assert actual.version == expected.version, (
-        f"Expected version '{expected.version}', got '{actual.version}'"
-    )
-    assert actual.marker == expected.marker, (
-        f"Expected marker '{expected.marker}', got '{actual.marker}'"
-    )
+    assert (
+        actual.version == expected.version
+    ), f"Expected version '{expected.version}', got '{actual.version}'"
+    assert (
+        actual.marker == expected.marker
+    ), f"Expected marker '{expected.marker}', got '{actual.marker}'"
 
 
 @pytest.fixture

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from dependency_update_pre_commit.update_mypy_dependencies import (
     NormalPackage,
+    TypeStubPackage,
     parse_optional_dependencies,
     parse_pyproject_toml,
     parse_requirement_with_marker,
@@ -24,7 +25,7 @@ def test_parse_requirement_without_marker() -> None:
     """Test parsing requirement without marker."""
     result = parse_requirement_with_marker("requests==2.32.0")
     # requests has a type stub, so it will be TypeStubPackage
-    assert hasattr(result, "marker")
+    assert isinstance(result, TypeStubPackage)
     assert result.marker is None
 
 
@@ -61,7 +62,10 @@ dependencies = [
         assert len(numpy_packages) == 2
 
         # Check that markers are preserved
-        markers = {p.marker for p in numpy_packages}
+        markers = []
+        for pkg in numpy_packages:
+            assert isinstance(pkg, NormalPackage)
+            markers.append(pkg.marker)
         assert 'sys_platform != "win32"' in markers
         assert 'sys_platform == "win32"' in markers
     finally:
@@ -109,6 +113,7 @@ def test_parse_optional_dependencies_with_marker() -> None:
             break
 
     assert tensorrt_pkg is not None
+    assert isinstance(tensorrt_pkg, NormalPackage)
     assert tensorrt_pkg.marker == 'sys_platform != "darwin"'
 
 

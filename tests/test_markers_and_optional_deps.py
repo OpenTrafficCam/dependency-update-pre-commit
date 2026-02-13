@@ -134,12 +134,16 @@ inference = [
     try:
         # Parse without optional extras
         result_without_extras = parse_pyproject_toml(temp_path, optional_extras=None)
-        package_names_without = {p.name for p in result_without_extras if hasattr(p, "name")}
+        package_names_without = {
+            p.name for p in result_without_extras if hasattr(p, "name")
+        }
         assert "torch" not in package_names_without
         assert "types-torch" not in package_names_without
 
         # Parse with optional extras
-        result_with_extras = parse_pyproject_toml(temp_path, optional_extras=["inference"])
+        result_with_extras = parse_pyproject_toml(
+            temp_path, optional_extras=["inference"]
+        )
         package_names_with = {p.name for p in result_with_extras if hasattr(p, "name")}
         # torch has a type stub, so it may be types-torch instead
         assert "torch" in package_names_with or "types-torch" in package_names_with
@@ -150,9 +154,15 @@ inference = [
 
 def test_hash_includes_marker() -> None:
     """Test that hash includes marker so platform-specific versions are distinct."""
-    pkg1 = NormalPackage(name="numpy", version="2.1.1", marker='sys_platform != "win32"')
-    pkg2 = NormalPackage(name="numpy", version="1.26.4", marker='sys_platform == "win32"')
-    pkg3 = NormalPackage(name="numpy", version="2.1.1", marker='sys_platform != "win32"')
+    pkg1 = NormalPackage(
+        name="numpy", version="2.1.1", marker='sys_platform != "win32"'
+    )
+    pkg2 = NormalPackage(
+        name="numpy", version="1.26.4", marker='sys_platform == "win32"'
+    )
+    pkg3 = NormalPackage(
+        name="numpy", version="2.1.1", marker='sys_platform != "win32"'
+    )
 
     # Different markers should have different hashes
     assert hash(pkg1) != hash(pkg2)

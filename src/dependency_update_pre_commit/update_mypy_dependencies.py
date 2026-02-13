@@ -60,7 +60,11 @@ class Package(AdditionalMypyDependency):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Package):
             return False
-        return (self.name, self.version, self.marker) == (other.name, other.version, other.marker)
+        return (self.name, self.version, self.marker) == (
+            other.name,
+            other.version,
+            other.marker,
+        )
 
 
 class TypeStubPackage(Package):
@@ -76,7 +80,9 @@ class TypeStubPackage(Package):
     def marker(self) -> str | None:
         return self._marker
 
-    def __init__(self, name: str, version: str | None, marker: str | None = None) -> None:
+    def __init__(
+        self, name: str, version: str | None, marker: str | None = None
+    ) -> None:
         self._name = name
         self._version = version
         self._marker = marker
@@ -101,7 +107,9 @@ class NormalPackage(Package):
     def marker(self) -> str | None:
         return self._marker
 
-    def __init__(self, name: str, version: str | None, marker: str | None = None) -> None:
+    def __init__(
+        self, name: str, version: str | None, marker: str | None = None
+    ) -> None:
         self._name = name
         self._version = version
         self._marker = marker
@@ -155,7 +163,9 @@ def parse_multiple_requirements_file(
     return packages
 
 
-def parse_requirement_with_marker(requirement_line: str) -> AdditionalMypyDependency | None:
+def parse_requirement_with_marker(
+    requirement_line: str,
+) -> AdditionalMypyDependency | None:
     """Parse requirement preserving environment marker.
 
     Args:
@@ -239,7 +249,9 @@ def parse_pyproject_toml(
     return packages
 
 
-def get_extra_index_urls(pyproject_data: dict, extra_names: list[str]) -> set[ExtraIndexUrl]:
+def get_extra_index_urls(
+    pyproject_data: dict, extra_names: list[str]
+) -> set[ExtraIndexUrl]:
     """Extract extra index URLs for specified optional extras from pyproject.toml.
 
     Args:
@@ -268,7 +280,9 @@ def get_extra_index_urls(pyproject_data: dict, extra_names: list[str]) -> set[Ex
 
         # Get package names from this extra
         for dep in optional_deps[extra_name]:
-            package_name = dep.split(";")[0].split("=")[0].split("<")[0].split(">")[0].strip()
+            package_name = (
+                dep.split(";")[0].split("=")[0].split("<")[0].split(">")[0].strip()
+            )
 
             # Check if this package has a custom source
             if package_name in sources:
@@ -307,7 +321,9 @@ def parse_optional_dependencies(
 
     for extra_name in extra_names:
         if extra_name not in optional_deps:
-            print(f"Warning: Optional extra '{extra_name}' not found in [project.optional-dependencies]")
+            print(
+                f"Warning: Optional extra '{extra_name}' not found in [project.optional-dependencies]"
+            )
             continue
 
         for dependency in optional_deps[extra_name]:
@@ -371,11 +387,15 @@ def create_extra_index_url(url: str) -> AdditionalMypyDependency:
     return ExtraIndexUrl(url)
 
 
-def create_package(name: str, version: str | None, marker: str | None = None) -> AdditionalMypyDependency:
+def create_package(
+    name: str, version: str | None, marker: str | None = None
+) -> AdditionalMypyDependency:
     """Check if a type stub exists for a given package name and return it."""
     types_package_name = f"types-{name}"
     if __check_types_for_package_exists(types_package_name):
-        return create_type_stub_package(name=types_package_name, version=version, marker=marker)
+        return create_type_stub_package(
+            name=types_package_name, version=version, marker=marker
+        )
 
     # Some packages already provide type stubs with their package
     # If they don't pre-commit mypy won't fail
@@ -393,7 +413,9 @@ def create_type_stub_package(
     return TypeStubPackage(name=name, version=version, marker=marker)
 
 
-def create_normal_package(name: str, version: str | None, marker: str | None = None) -> AdditionalMypyDependency:
+def create_normal_package(
+    name: str, version: str | None, marker: str | None = None
+) -> AdditionalMypyDependency:
     return NormalPackage(name=name, version=version, marker=marker)
 
 
@@ -459,7 +481,9 @@ def main() -> None:
     # Parse optional extras from argument
     optional_extras = None
     if args.optional_extras:
-        optional_extras = [extra.strip() for extra in args.optional_extras.split(",") if extra.strip()]
+        optional_extras = [
+            extra.strip() for extra in args.optional_extras.split(",") if extra.strip()
+        ]
 
     pyproject_file = Path("pyproject.toml")
     requirements_file = Path("requirements.txt")

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import re
 import tomllib
 from abc import ABC, abstractmethod
@@ -472,8 +473,6 @@ def type_stubs_have_changed(actual: dict, to_compare: dict) -> bool:
 
 
 def main() -> None:
-    import argparse
-
     parser = argparse.ArgumentParser(
         description="Update mypy additional_dependencies in .pre-commit-config.yaml"
     )

@@ -26,6 +26,7 @@ keywords = ["pre-commit", "mypy", "type-stubs", "type-checking"]
 dependencies = [
     "PyYAML>=6.0",
     "requests>=2.31.0",
+    "packaging>=24.0",
 ]
 
 [project.scripts]

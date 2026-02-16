@@ -47,6 +47,59 @@ Or run the script directly:
 python update_mypy_dependencies.py
 ```
 
+### Including Optional Dependencies
+
+If your project has optional dependencies that are required for type checking, you can specify which extras to include:
+
+```yaml
+- repo: https://github.com/OpenTrafficCam/dependency-update-pre-commit
+  rev: v0.1.0
+  hooks:
+    - id: update-mypy-dependencies
+      args: ['--optional-extras=inference_cpu']
+```
+
+For multiple extras:
+
+```yaml
+args: ['--optional-extras=inference_cpu,test_extras']
+```
+
+**Example Use Case:**
+
+If your `pyproject.toml` has:
+
+```toml
+[project.optional-dependencies]
+inference_cpu = [
+    "torch==2.7.1",
+    "torchvision==0.22.1",
+]
+```
+
+And your code unconditionally imports torch, adding `--optional-extras=inference_cpu` ensures these packages are available for mypy type checking.
+
+### Platform-Specific Dependencies
+
+The hook now preserves PEP 508 environment markers, allowing platform-specific dependencies to work correctly:
+
+**Input (pyproject.toml):**
+```toml
+dependencies = [
+    "numpy==2.1.1; sys_platform != 'win32'",
+    "numpy==1.26.4; sys_platform == 'win32'",
+]
+```
+
+**Output (.pre-commit-config.yaml):**
+```yaml
+additional_dependencies:
+  - numpy==1.26.4; sys_platform == "win32"
+  - numpy==2.1.1; sys_platform != "win32"
+```
+
+Pip will automatically evaluate the markers and install only the matching version for your platform.
+
 ## Dependency Sources
 
 ### pyproject.toml (Preferred)
